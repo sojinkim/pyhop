@@ -5,14 +5,7 @@ $ python pyhop_test.py
 """
 
 import pyhop
-
-def at_same_place(state,a,b):
-    return state.loc[a] == state.loc[b]
-
-def search_for_ring(state):
-    for k in state.ring:
-        if state.ring[k] > 0: return k
-    return None
+from story_util import *
 
  
 
@@ -46,7 +39,7 @@ def talk(state,a,b):
         state.happiness[b] += 20
         state.happiness[a] += 20
         return state
-    else: 
+    else:
         return False 
 
 
@@ -132,7 +125,6 @@ def buy(state,a,x):
         return state
     else:
         return False
-
 
 
 pyhop.declare_operators(get_job, work, buy, appology, return_ring, say_love, goto, pickup_ring, give, talk, steal_ring, yell, curse, suicide)

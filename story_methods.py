@@ -5,41 +5,18 @@ $ python pyhop_test.py
 """
 
 import pyhop
-import story_operators as op
+import story_operators
+from story_util import * 
 
 last = pyhop.State('last')
 
-def get_max_key(d1):
-    max_key = max(d1.iterkeys(), key=(lambda k: d1[k]))
-    if d1[max_key] >= 0: return max_key
-    else: return None
-
-def get_min_key(d1):
-    min_key = min(d1.iterkeys(), key=(lambda k: d1[k]))
-    if d1[min_key] < 0: return min_key
-    else: return None
-
-def most_dislike(state,a):
-    return get_min_key(state.like[a])
-
-def most_like(state,a):
-    return get_max_key(state.like[a])
-
-def most_upset(state):
-    return get_max_key(state.upset)
-
-def most_happy(state):
-    return get_max_key(state.happiness)
-
-def most_unhappy(state):
-    return get_min_key(state.happiness)
 
 
 def get_ring(state,a):
     if state.ring[state.loc[a]] > 0:
         return [('pickup_ring',a)]
     else:
-        ring_loc = op.search_for_ring(state)
+        ring_loc = search_for_ring(state)
         if ring_loc is None: 
             return [('buy_ring',a)]
         else:
@@ -68,7 +45,7 @@ def attract_by_talk(state,a,b,goal):
 	last = state
         return []
     if state.like[b][a] < 50:
-        if op.at_same_place(state,a,b):
+        if at_same_place(state,a,b):
             return [('talk',a,b),('attract',a,b,goal)]
         else:
             return [('goto',a,state.loc[b]),('talk',a,b),('attract',a,b,goal)]
@@ -122,7 +99,7 @@ def make_calm_by_appology(state,a,b):
         return []
     if state.upset[b] <= 50 or state.like[b][a] >= 0:
         return False
-    if op.at_same_place(state,a,b):
+    if at_same_place(state,a,b):
         return [('appology',a,b),('make_calm',a,b)]
     else: 
         return [('goto',a,state.loc[b]),('make_calm',a,b)]
@@ -130,17 +107,17 @@ def make_calm_by_appology(state,a,b):
 def make_calm_by_return_ring(state,a,b):
     if state.upset[b] <= 0:
         return []
-    if op.at_same_place(state,a,b):
+    if at_same_place(state,a,b):
         return [('return_ring',a,b),('make_calm',a,b)]
     else:
         return [('goto',a,state.loc[b]),('make_calm',a,b)]
 
 pyhop.declare_methods('make_calm',make_calm_by_appology,make_calm_by_return_ring)
 
-def make_happy(state,a,b):
-    if state.happiness[b] > 100:
+def make_happy(state,a,b,goal):
+    if state.happiness[b] > goal.happiness[b]:
         return []
-    if op.at_same_place(state,a,b):
+    if at_same_place(state,a,b):
         return [('say_love',a,b),('make_happy',a,b)]
     else:
         return [('goto',a,state.loc[b]),('make_happy',a,b)]
@@ -148,25 +125,23 @@ def make_happy(state,a,b):
 pyhop.declare_methods('make_happy',make_happy)
 
 
-def make_unhappy(state,a,b):
-    if most_unhappy(state) == b and state.happiness[b] < -50: 
-        global last
-        last = state 
-        return [('suicide',b)]
+def make_unhappy(state,a,b,goal):
+    if most_unhappy(state) == b and state.happiness[b] < goal.happiness[b]: 
+        return []
    
-    if op.at_same_place(state,a,b):
-        return [('curse',a,b),('make_unhappy',a,b)]
+    if at_same_place(state,a,b):
+        return [('curse',a,b),('make_unhappy',a,b,goal)]
     else:
-        return [('goto',a,state.loc[b]),('make_unhappy',a,b)]
+        return [('goto',a,state.loc[b]),('make_unhappy',a,b,goal)]
 
 pyhop.declare_methods('make_unhappy',make_unhappy)
 
 
-def happy_ending(state,a):
+def happy_ending(state,a,goal):
     if state.upset[a] > 0:
-        return [('make_calm',most_dislike(state,a),a),('happy_ending',a)]
+        return [('make_calm',most_dislike(state,a),a),('happy_ending',a,goal)]
     if state.happiness[a] < 100:
-        return [('make_happy',most_like(state,a),a),('happy_ending',a)]
+        return [('make_happy',most_like(state,a),a,goal),('happy_ending',a,goal)]
     else: 
         global last
         last = state
@@ -174,12 +149,16 @@ def happy_ending(state,a):
 
 pyhop.declare_methods('happy_ending',happy_ending)
     
-def bad_ending(state,a):
+def bad_ending(state,a,goal):
     one = most_like(state,a)
-    print one
     if state.happiness[a] < -50:
+        global last
+        last = state 
         return []
     else:
-        return[('make_unhappy', 'marry', a),('bad_ending',a)]
+        return[('make_unhappy',one,a,goal),('bad_ending',a,goal)]
 
 pyhop.declare_methods('bad_ending',bad_ending)
+
+
+
